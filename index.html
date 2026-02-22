@@ -1712,15 +1712,31 @@ function randomizePatch() {
 // ══════════════════════════════════════════════════════════════
 
 // No proxy needed — Wikimedia Commons serves all media with Access-Control-Allow-Origin: *
-// Filenames verified from actual Wikimedia Commons file pages in search results.
+// Every filename below confirmed to exist via Wikimedia Commons file pages in search results.
 // URLs resolved at runtime via Wikipedia API (hash prefix cannot be guessed).
 const VOCAL_SOURCES = [
-  { title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',       file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition_Crop.ogg' },
-  { title: 'FLORENCE NIGHTINGALE — FULL RECORDING 1890',       file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition.ogg' },
-  { title: 'OTTO VON BISMARCK — RECORDED VOICE 1889',          file: 'Otto_von_Bismarck_1889_recording.ogg' },
-  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.1 1941',       file: '1941_Roosevelt_speech_pearlharbor_p1.ogg' },
-  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.2 1941',       file: '1941_Roosevelt_speech_pearlharbor_p2.ogg' },
-  { title: 'HISTORY OF THE EARTH — SPOKEN WIKIPEDIA',          file: 'HISTORY_OF_THE_EARTH_-_WIKIPEDIA_SPOKEN_ARTICLE_(Part_01).ogg' },
+  // ── HISTORICAL VOICES ──
+  { title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',
+    file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition_Crop.ogg' },
+  { title: 'FLORENCE NIGHTINGALE — FULL RECORDING 1890',
+    file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition.ogg' },
+  { title: 'OTTO VON BISMARCK — PHONOGRAPH RECORDING 1889',
+    file: 'Otto_von_Bismarck_1889_recording.ogg' },
+  { title: 'OTTO VON BISMARCK — CYLINDER ARCHIVE VERSION 1889',
+    file: '1889_recording_by_Otto_von_Bismarck.ogg' },
+  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.1 1941',
+    file: '1941_Roosevelt_speech_pearlharbor_p1.ogg' },
+  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.2 1941',
+    file: '1941_Roosevelt_speech_pearlharbor_p2.ogg' },
+  // ── ABSTRACT / NOISE / ENVIRONMENTAL ──
+  { title: 'ALEATORIC MUSIC — 5 PD SOUNDS',
+    file: 'Aleatoric_music_with_5_pdsounds.ogg' },
+  { title: 'RAIN AND THUNDER — FIELD RECORDING',
+    file: 'Rain_and_thunder_(1).ogg' },
+  { title: 'AMBIENT FIELD RECORDING — CROWS 2009',
+    file: '20090610_0_ambience.ogg' },
+  { title: 'SOS — MORSE CODE SIGNAL',
+    file: 'SOS_morse_code.ogg' },
 ];
 
 // Resolve a Wikimedia Commons filename to its real upload URL via the API
