@@ -1190,41 +1190,30 @@ function randomizePatch() {
 // ══════════════════════════════════════════════════════════════
 
 // No proxy needed — Wikimedia Commons serves all media with Access-Control-Allow-Origin: *
-// All filenames verified from Wikimedia Commons search results.
+// We store FILENAMES only — real URLs are resolved via the Wikimedia API at runtime
+// because the upload path hash cannot be guessed (it's an MD5 of the filename).
 const VOCAL_SOURCES = [
-  {
-    title: 'TENNYSON READS THE CHARGE OF THE LIGHT BRIGADE — 1890',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/LightBrigade-Tennyson.ogg',
-  },
-  {
-    title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Florence_Nightingale_voice_-_1576A_2nd_Rendition.ogg',
-  },
-  {
-    title: 'OTTO VON BISMARCK — RECORDED VOICE 1889',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/Otto_von_Bismarck_1889_recording.ogg',
-  },
-  {
-    title: 'THOMAS EDISON — AROUND THE WORLD 1888',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Aroundworldonphon1888.ogg',
-  },
-  {
-    title: 'THOMAS EDISON — MARY HAD A LITTLE LAMB 1927',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Thomas_Edison_Mary_had_lamb.ogg',
-  },
-  {
-    title: 'WALT WHITMAN — AMERICA 1890',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Walt_Whitman_-_America_Version_2.ogg',
-  },
-  {
-    title: 'WILLIAM JENNINGS BRYAN — CROSS OF GOLD SPEECH 1908',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Bryan_speech.ogg',
-  },
-  {
-    title: 'GETTYSBURG ADDRESS — EDWARD EVERETT HALE 1863',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Gettysburg_address_fewel.ogg',
-  },
+  { title: 'TENNYSON READS THE CHARGE OF THE LIGHT BRIGADE — 1890', file: 'LightBrigade-Tennyson.ogg' },
+  { title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',            file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition_Crop.ogg' },
+  { title: 'WALT WHITMAN — AMERICA 1890',                           file: 'Walt_Whitman_-_America_Version_2.ogg' },
+  { title: 'WILLIAM JENNINGS BRYAN — CROSS OF GOLD 1908',           file: 'William_Jennings_Bryan_Cross_of_Gold.ogg' },
+  { title: 'GETTYSBURG ADDRESS — EDWARD EVERETT HALE',              file: 'Gettysburg_address_fewel.ogg' },
+  { title: 'NIKOLA TESLA — INTERVIEW RECORDING',                    file: 'Tesla_voice.ogg' },
+  { title: 'MARK TWAIN — RECORDED VOICE 1909',                      file: 'Mark_Twain_voice.ogg' },
+  { title: 'WILLIAM GLADSTONE — RECORDED SPEECH 1888',              file: 'William_Ewart_Gladstone_speech.ogg' },
 ];
+
+// Resolve a Wikimedia Commons filename to its real upload URL via the API
+async function resolveWikimediaURL(filename) {
+  const apiURL = `https://en.wikipedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&format=json&origin=*`;
+  const res = await fetch(apiURL);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  const data = await res.json();
+  const pages = data.query.pages;
+  const page = Object.values(pages)[0];
+  if (!page.imageinfo || !page.imageinfo[0]) throw new Error('No imageinfo');
+  return page.imageinfo[0].url;
+}
 
 // One source chosen at session start, never changes mid-session
 const SESSION_VOCAL = VOCAL_SOURCES[Math.floor(Math.random() * VOCAL_SOURCES.length)];
@@ -1243,22 +1232,21 @@ let grainPitchRange = 0.06; // very subtle pitch shift — keep voice recognisab
 // ── LOAD VOCAL FROM ARCHIVE ───────────────────────────────────
 async function loadVocalArchive() {
   const tk = document.getElementById('ticker');
-
-  // Shuffle sources so we try them in random order
   const sources = shuffle([...VOCAL_SOURCES]);
 
   for (const src of sources) {
-    tk.textContent = `> LOCATING: ${src.title}`;
     try {
+      tk.textContent = `> RESOLVING: ${src.title}`;
+      const audioURL = await resolveWikimediaURL(src.file);
+      console.log(`Resolved ${src.file} → ${audioURL}`);
+
+      tk.textContent = `> FETCHING: ${src.title}`;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
-      const response = await fetch(src.url, { signal: controller.signal });
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(audioURL, { signal: controller.signal });
       clearTimeout(timeout);
 
-      if (!response.ok) {
-        console.warn(`Vocal source 404: ${src.url}`);
-        continue; // try next source
-      }
+      if (!response.ok) { console.warn(`Audio fetch failed: ${response.status}`); continue; }
 
       tk.textContent = `> DECODING: ${src.title}`;
       const arrayBuffer = await response.arrayBuffer();
@@ -1275,17 +1263,15 @@ async function loadVocalArchive() {
       return true;
 
     } catch (err) {
-      console.warn(`Vocal source failed (${err.message}): ${src.url}`);
-      continue; // try next
+      console.warn(`Source failed (${err.message}): ${src.file}`);
+      continue;
     }
   }
 
-  // All sources failed — fall back to synthetic
-  tk.textContent = `! ALL SOURCES OFFLINE — GENERATING SYNTHETIC`;
-  await sleep(300);
+  // All sources failed
+  tk.textContent = `! ALL SOURCES FAILED — SYNTHETIC VOICE`;
   buildSyntheticSample();
   vocalBuffer = sampleBuffer;
-  tk.textContent = `✓ SYNTHETIC VOICE LOADED`;
   return false;
 }
 
@@ -1294,27 +1280,27 @@ async function fetchNewSample() {
   if (!audioReady) return;
   const next = VOCAL_SOURCES[Math.floor(Math.random() * VOCAL_SOURCES.length)];
   const tk = document.getElementById('ticker');
-  tk.textContent = `> LOCATING: ${next.title}`;
-  await sleep(180);
   try {
+    tk.textContent = `> RESOLVING: ${next.title}`;
+    const audioURL = await resolveWikimediaURL(next.file);
     tk.textContent = `> FETCHING: ${next.title}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
-    const response = await fetch(next.url, { signal: controller.signal });
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    const response = await fetch(audioURL, { signal: controller.signal });
     clearTimeout(timeout);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    tk.textContent = `> DECODING AUDIO...`;
+    tk.textContent = `> DECODING...`;
     const ab = await response.arrayBuffer();
     vocalBuffer = await ctx.decodeAudioData(ab);
     sampleBuffer = vocalBuffer;
-    grainPos = Math.random() * 0.3; // start near beginning so speech starts fresh
-    tk.textContent = `✓ VOCAL LOADED: ${next.title}`;
-    // Fire a grain immediately so user hears confirmation
+    grainPos = Math.random() * 0.3;
+    tk.textContent = `✓ ${next.title}`;
     if (ctx.state === 'suspended') await ctx.resume();
     fireVocalGrain(ctx.currentTime + 0.05);
-    fireVocalGrain(ctx.currentTime + 0.4);
+    fireVocalGrain(ctx.currentTime + 0.5);
   } catch(e) {
-    tk.textContent = `! FETCH FAILED (${e.message}) — USING SYNTHETIC`;
+    console.warn('fetchNewSample failed:', e.message);
+    tk.textContent = `! FETCH FAILED — ${e.message}`;
     buildSyntheticSample();
     vocalBuffer = sampleBuffer;
   }
