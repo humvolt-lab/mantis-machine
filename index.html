@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>MANTIS MACHINE</title>
@@ -1188,93 +1189,40 @@ function randomizePatch() {
 //  Falls back to synthetic noise buffer if fetch fails.
 // ══════════════════════════════════════════════════════════════
 
-// CORS proxy — needed when running from file:// or a domain archive.org blocks
-const CORS_PROXY = 'https://corsproxy.io/?';
-function proxied(url) { return CORS_PROXY + encodeURIComponent(url); }
-
+// No proxy needed — Wikimedia Commons serves all media with Access-Control-Allow-Origin: *
+// All filenames verified from Wikimedia Commons search results.
 const VOCAL_SOURCES = [
-  // ── Internet Archive: LibriVox public domain audiobooks ──
   {
-    title: 'EDGAR ALLAN POE — THE RAVEN (1909)',
-    url: 'https://archive.org/download/the_raven_librivox/theraven_poe_64kb.mp3',
+    title: 'TENNYSON READS THE CHARGE OF THE LIGHT BRIGADE — 1890',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/LightBrigade-Tennyson.ogg',
   },
   {
-    title: 'WALT WHITMAN — O CAPTAIN MY CAPTAIN',
-    url: 'https://archive.org/download/o_captain_librivox/o_captain_whitman_64kb.mp3',
+    title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Florence_Nightingale_voice_-_1576A_2nd_Rendition.ogg',
   },
   {
-    title: 'H.G. WELLS — WAR OF THE WORLDS CH.1',
-    url: 'https://archive.org/download/war_of_the_worlds_librivox/waroftheworlds_01_wells_64kb.mp3',
+    title: 'OTTO VON BISMARCK — RECORDED VOICE 1889',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/c/c4/Otto_von_Bismarck_1889_recording.ogg',
   },
   {
-    title: 'JACK LONDON — CALL OF THE WILD CH.1',
-    url: 'https://archive.org/download/call_of_the_wild_librivox/callofthewild_01_london_64kb.mp3',
+    title: 'THOMAS EDISON — AROUND THE WORLD 1888',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Aroundworldonphon1888.ogg',
   },
   {
-    title: 'MARY SHELLEY — FRANKENSTEIN CH.1',
-    url: 'https://archive.org/download/frankenstein_0809_librivox/frankenstein_01_shelley_64kb.mp3',
+    title: 'THOMAS EDISON — MARY HAD A LITTLE LAMB 1927',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Thomas_Edison_Mary_had_lamb.ogg',
   },
   {
-    title: 'HERMAN MELVILLE — MOBY DICK CH.1',
-    url: 'https://archive.org/download/moby_dick_librivox/mobydick_001_melville_64kb.mp3',
+    title: 'WALT WHITMAN — AMERICA 1890',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Walt_Whitman_-_America_Version_2.ogg',
   },
   {
-    title: 'JOSEPH CONRAD — HEART OF DARKNESS',
-    url: 'https://archive.org/download/heart_of_darkness_librivox/heartof_darkness_01_conrad_64kb.mp3',
-  },
-  {
-    title: 'OSCAR WILDE — THE IMPORTANCE OF...',
-    url: 'https://archive.org/download/importance_of_being_earnest_librivox/importanceofbeingearnest_1_wilde_64kb.mp3',
-  },
-  {
-    title: 'AMBROSE BIERCE — AN OCCURRENCE...',
-    url: 'https://archive.org/download/an_occurrence_at_owl_creek_librivox/anoccurrenceatowlcreekbridge_bierce_64kb.mp3',
-  },
-  {
-    title: 'FRANZ KAFKA — THE METAMORPHOSIS',
-    url: 'https://archive.org/download/the_metamorphosis_librivox/themetamorphosis_kafka_64kb.mp3',
-  },
-  // ── Internet Archive: Old Time Radio / spoken word broadcasts ──
-  {
-    title: 'ORSON WELLES — RADIO BROADCAST 1938',
-    url: 'https://archive.org/download/OrsonWellesMrBruns/George%20Phillips%20-%20MrBruns.mp3',
-  },
-  {
-    title: 'GOVERNMENT CIVIL DEFENSE BROADCAST',
-    url: 'https://archive.org/download/CivilDefenseAudio/bert_the_turtle.mp3',
-  },
-  {
-    title: 'FDR FIRESIDE CHAT — 1933',
-    url: 'https://archive.org/download/fdr_fireside_chats/fdr_fireside_01.mp3',
-  },
-  {
-    title: 'NASA APOLLO MISSION AUDIO',
-    url: 'https://archive.org/download/apollo11_audio/apollo11_highlights.mp3',
-  },
-  // ── Wikimedia Commons public domain spoken word ──
-  {
-    title: 'GETTYSBURG ADDRESS — LINCOLN 1863',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Gettysburg_address_fewel.ogg',
-  },
-  {
-    title: 'WILLIAM JENNINGS BRYAN — 1908',
+    title: 'WILLIAM JENNINGS BRYAN — CROSS OF GOLD SPEECH 1908',
     url: 'https://upload.wikimedia.org/wikipedia/commons/9/98/Bryan_speech.ogg',
   },
   {
-    title: 'TENNYSON READS THE CHARGE OF...',
-    url: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Alfred_Lord_Tennyson_-_The_Charge_of_the_Light_Brigade.ogg',
-  },
-  {
-    title: 'EMILY DICKINSON POEMS — LIBRIVOX',
-    url: 'https://archive.org/download/poems_by_emily_dickinson_librivox/emilydickinson01_01_dickinson_64kb.mp3',
-  },
-  {
-    title: 'RUDYARD KIPLING — IF (POEM)',
-    url: 'https://archive.org/download/if_poem_librivox/if_kipling_64kb.mp3',
-  },
-  {
-    title: 'CONAN DOYLE — SHERLOCK HOLMES CH.1',
-    url: 'https://archive.org/download/a_study_in_scarlet_librivox/astudyinscarlet_01_doyle_64kb.mp3',
+    title: 'GETTYSBURG ADDRESS — EDWARD EVERETT HALE 1863',
+    url: 'https://upload.wikimedia.org/wikipedia/commons/8/8e/Gettysburg_address_fewel.ogg',
   },
 ];
 
@@ -1295,48 +1243,50 @@ let grainPitchRange = 0.06; // very subtle pitch shift — keep voice recognisab
 // ── LOAD VOCAL FROM ARCHIVE ───────────────────────────────────
 async function loadVocalArchive() {
   const tk = document.getElementById('ticker');
-  const src = SESSION_VOCAL;
 
-  tk.textContent = `> LOCATING: ${src.title}`;
-  await sleep(200);
+  // Shuffle sources so we try them in random order
+  const sources = shuffle([...VOCAL_SOURCES]);
 
-  try {
-    tk.textContent = `> FETCHING: ${src.title}`;
+  for (const src of sources) {
+    tk.textContent = `> LOCATING: ${src.title}`;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const response = await fetch(src.url, { signal: controller.signal });
+      clearTimeout(timeout);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-    const response = await fetch(proxied(src.url), {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    tk.textContent = `> DECODING: ${src.title}`;
-    const arrayBuffer = await response.arrayBuffer();
-    vocalBuffer = await ctx.decodeAudioData(arrayBuffer);
-
-    tk.textContent = `✓ VOCAL: ${src.title}`;
-    // Also use as sampleBuffer fallback
-    sampleBuffer = vocalBuffer;
-    // Fire two test grains immediately so user hears the voice on first beat
-    setTimeout(() => {
-      if (vocalBuffer && vocalGain) {
-        fireVocalGrain(ctx.currentTime + 0.1);
-        fireVocalGrain(ctx.currentTime + 0.7);
+      if (!response.ok) {
+        console.warn(`Vocal source 404: ${src.url}`);
+        continue; // try next source
       }
-    }, 500);
-    return true;
 
-  } catch (err) {
-    tk.textContent = `! ARCHIVE OFFLINE — GENERATING SYNTHETIC`;
-    await sleep(400);
-    buildSyntheticSample();
-    vocalBuffer = sampleBuffer;
-    tk.textContent = `✓ SYNTHETIC VOICE LOADED`;
-    return false;
+      tk.textContent = `> DECODING: ${src.title}`;
+      const arrayBuffer = await response.arrayBuffer();
+      vocalBuffer = await ctx.decodeAudioData(arrayBuffer);
+      sampleBuffer = vocalBuffer;
+
+      tk.textContent = `✓ VOCAL: ${src.title}`;
+      setTimeout(() => {
+        if (vocalBuffer && vocalGain) {
+          fireVocalGrain(ctx.currentTime + 0.1);
+          fireVocalGrain(ctx.currentTime + 0.7);
+        }
+      }, 500);
+      return true;
+
+    } catch (err) {
+      console.warn(`Vocal source failed (${err.message}): ${src.url}`);
+      continue; // try next
+    }
   }
+
+  // All sources failed — fall back to synthetic
+  tk.textContent = `! ALL SOURCES OFFLINE — GENERATING SYNTHETIC`;
+  await sleep(300);
+  buildSyntheticSample();
+  vocalBuffer = sampleBuffer;
+  tk.textContent = `✓ SYNTHETIC VOICE LOADED`;
+  return false;
 }
 
 // ── FETCH NEW — cycles to next random source ─────────────────
@@ -1350,7 +1300,7 @@ async function fetchNewSample() {
     tk.textContent = `> FETCHING: ${next.title}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
-    const response = await fetch(proxied(next.url), { signal: controller.signal });
+    const response = await fetch(next.url, { signal: controller.signal });
     clearTimeout(timeout);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     tk.textContent = `> DECODING AUDIO...`;
