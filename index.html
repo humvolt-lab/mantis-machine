@@ -482,8 +482,8 @@ const MODES = [
       { icon:'⚡', label:'MUTATE',       fn:()=>mutateSequencer() },
       { icon:'⬇', label:'FETCH\nSMPL',  fn:()=>fetchNewSample() },
       { icon:'⊛', label:'RANDOM\nALL',  fn:()=>randomizePatch() },
-      { icon:'▲', label:'CHAOS+',       fn:()=>nudgeChaos(+18) },
       { icon:'◎', label:'DRUM\nKIT',    fn:()=>cycleDrumKit() },
+      { icon:'✦', label:'METAL\nKIT',   fn:()=>cycleMetalKit() },
     ]
   },
   {
@@ -491,14 +491,14 @@ const MODES = [
     idleIcon:'⬤', idleLabel:'TRIG',
     hint:'DRUM PAD TRIGGERS',
     actions:[
-      { icon:'⬤', label:'KICK',    fn:()=>triggerPad(0) },
-      { icon:'◈', label:'SNARE',   fn:()=>triggerPad(1) },
-      { icon:'△', label:'HAT',     fn:()=>triggerPad(2) },
-      { icon:'◇', label:'CRASH',   fn:()=>triggerPad(3) },
-      { icon:'✦', label:'METAL',   fn:()=>triggerPad(4) },
-      { icon:'~', label:'NOISE',   fn:()=>triggerPad(5) },
-      { icon:'◎', label:'KIT\nNXT',fn:()=>cycleDrumKit() },
-      { icon:'ƒ', label:'GLITCH',  fn:()=>triggerPad(8) },
+      { icon:'⬤', label:'KICK',     fn:()=>triggerPad(0) },
+      { icon:'◈', label:'SNARE',    fn:()=>triggerPad(1) },
+      { icon:'△', label:'HAT',      fn:()=>triggerPad(2) },
+      { icon:'◇', label:'CRASH',    fn:()=>triggerPad(3) },
+      { icon:'✦', label:'METAL',    fn:()=>triggerPad(4) },
+      { icon:'~', label:'NOISE',    fn:()=>triggerPad(5) },
+      { icon:'◎', label:'KIT\nNXT', fn:()=>cycleDrumKit() },
+      { icon:'ƒ', label:'VOCALKIT', fn:()=>cycleVocalSource() },
     ]
   },
   {
@@ -506,13 +506,13 @@ const MODES = [
     idleIcon:'⊞', idleLabel:'SEQ',
     hint:'PATTERN TOOLS',
     actions:[
-      { icon:'✕', label:'CLEAR',   fn:()=>clearPattern() },
-      { icon:'◀', label:'SHIFT<',  fn:()=>shiftSeq(-1) },
-      { icon:'▶', label:'SHIFT>',  fn:()=>shiftSeq(+1) },
-      { icon:'↑', label:'FILL',    fn:()=>fillDensity(+0.18) },
-      { icon:'↓', label:'SPARSE',  fn:()=>fillDensity(-0.18) },
-      { icon:'⇄', label:'FLIP',    fn:()=>flipSeq() },
-      { icon:'⟳', label:'REGEN',   fn:()=>generatePattern() },
+      { icon:'✕', label:'CLEAR',        fn:()=>clearPattern() },
+      { icon:'◀', label:'SHIFT<',       fn:()=>shiftSeq(-1) },
+      { icon:'▶', label:'SHIFT>',       fn:()=>shiftSeq(+1) },
+      { icon:'↑', label:'FILL',         fn:()=>fillDensity(+0.18) },
+      { icon:'↓', label:'SPARSE',       fn:()=>fillDensity(-0.18) },
+      { icon:'⇄', label:'FLIP',         fn:()=>flipSeq() },
+      { icon:'≋', label:'DRONE\nKIT',   fn:()=>cycleDroneKit() },
     ]
   },
   {
@@ -819,7 +819,7 @@ let droneOsc, droneGainNode, droneFilter, droneGate;
 let subOsc, subGainNode;
 let bassLFOTimer = null;
 
-// Pentatonic minor scale root frequencies (A1-based, industrial low)
+// Pentatonic minor scale root frequencies — mutable, swapped by drone kit
 const BASS_SCALE = [36.7, 43.7, 49.0, 55.0, 61.7, 73.4, 82.4, 87.3, 98.0, 110.0];
 let bassScaleIdx = 0;
 let bassNoteTimer = null;
@@ -944,6 +944,11 @@ const DRUM_KITS = [
 ];
 let currentKit = 0;
 
+function cycleVocalSource() {
+  // Same as fetchNewSample but picks a different source from current
+  fetchNewSample();
+}
+
 function cycleDrumKit() {
   currentKit = (currentKit + 1) % DRUM_KITS.length;
   const k = DRUM_KITS[currentKit];
@@ -1010,15 +1015,150 @@ function synthCrash(t, v=1) {
   s.connect(bf); bf.connect(g); g.connect(masterGain); s.start(t); s.stop(t+kit.decay+0.4);
 }
 
+// ── METAL HIT KITS ────────────────────────────────────────────
+// 6 distinct metallic hit characters, cycled independently of drum kit
+const METAL_KITS = [
+  {
+    name: 'STEEL',       // cold industrial clang
+    freqs: [300,523,811,1218,1618], type:'sawtooth',
+    decay: ()=>0.28+chaos*0.12, drive: 60, filt: null,
+  },
+  {
+    name: 'BELL',        // warm bell tones, longer decay
+    freqs: [440,880,1320,1760,2200], type:'sine',
+    decay: ()=>1.2+chaos*0.8, drive: 20, filt: 'bandpass',
+  },
+  {
+    name: 'PIPE',        // hollow resonant pipe strike
+    freqs: [130,260,390,520], type:'square',
+    decay: ()=>0.6+chaos*0.4, drive: 40, filt: 'lowpass',
+  },
+  {
+    name: 'SHARD',       // high brittle fragment burst
+    freqs: [1800,2400,3200,4200,5600,7200], type:'sawtooth',
+    decay: ()=>0.08+chaos*0.06, drive: 200, filt: 'highpass',
+  },
+  {
+    name: 'TANK',        // deep resonant metal thud
+    freqs: [80,160,240,320], type:'triangle',
+    decay: ()=>0.9+chaos*0.5, drive: 120, filt: 'lowpass',
+  },
+  {
+    name: 'WIRE',        // buzzing wire/spring twang
+    freqs: [600,1200,1800,2400,3000,4200], type:'sawtooth',
+    decay: ()=>0.18+chaos*0.3, drive: 300, filt: 'bandpass',
+  },
+];
+let currentMetalKit = 0;
+
+function cycleMetalKit() {
+  currentMetalKit = (currentMetalKit + 1) % METAL_KITS.length;
+  const k = METAL_KITS[currentMetalKit];
+  document.getElementById('ticker').textContent = `▶ METAL: ${k.name}`;
+  setTimeout(()=>{ document.getElementById('ticker').textContent = `✓ METAL HIT: ${k.name}`; }, 400);
+}
+
 function synthMetal(t, v=1) {
-  const freqs = currentKit===2 ? [200,350,520,750,1100,1600,2200] : [300,523,811,1218,1618];
-  freqs.forEach(f => {
-    const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sawtooth';
-    o.frequency.value=f+(Math.random()-.5)*80*(1+chaos);
-    const decay = 0.25 + chaos*0.15;
-    g.gain.setValueAtTime(v*.07, t); g.gain.exponentialRampToValueAtTime(0.001, t+decay);
-    o.connect(g); g.connect(masterDist); o.start(t); o.stop(t+decay+0.04);
+  const kit = METAL_KITS[currentMetalKit];
+  const decay = kit.decay();
+  kit.freqs.forEach(f => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const d = ctx.createWaveShaper(); d.curve = mkDC(kit.drive);
+    o.type = kit.type;
+    o.frequency.value = f + (Math.random()-0.5)*f*0.08*(1+chaos);
+    g.gain.setValueAtTime(v*0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+decay);
+
+    let node = o;
+    if (kit.filt) {
+      const flt = ctx.createBiquadFilter();
+      flt.type = kit.filt;
+      flt.frequency.value = kit.filt==='highpass' ? 3000 : kit.filt==='lowpass' ? 800 : f*1.5;
+      flt.Q.value = 2.5;
+      o.connect(flt); flt.connect(d);
+    } else {
+      o.connect(d);
+    }
+    d.connect(g); g.connect(masterDist);
+    o.start(t); o.stop(t+decay+0.05);
   });
+}
+
+// ── DRONE / BASS MELODY KITS ──────────────────────────────────
+// 6 distinct drone characters for the bass melody voice
+const DRONE_KITS = [
+  {
+    name: 'INDUSTRIAL',  // current — sawtooth through tight lowpass
+    oscType: 'sawtooth', subType: 'sine',
+    filtFreq: ()=>220+Math.random()*300*(0.3+chaos), filtQ: 3.5,
+    gainMult: 1.0, scale: [36.7,43.7,49.0,55.0,61.7,73.4,82.4,98.0],
+  },
+  {
+    name: 'ORGAN',       // square wave, wider filter, church-organ weight
+    oscType: 'square', subType: 'square',
+    filtFreq: ()=>600+Math.random()*400, filtQ: 1.2,
+    gainMult: 0.7, scale: [41.2,49.0,55.0,61.7,65.4,73.4,82.4,87.3],
+  },
+  {
+    name: 'SUB',         // near-sine, very low, felt more than heard
+    oscType: 'sine', subType: 'sine',
+    filtFreq: ()=>120+Math.random()*80, filtQ: 0.8,
+    gainMult: 1.6, scale: [27.5,30.9,32.7,36.7,41.2,43.7,49.0,55.0],
+  },
+  {
+    name: 'REESE',       // two detuned saws — classic reese bass
+    oscType: 'sawtooth', subType: 'sawtooth',
+    filtFreq: ()=>280+Math.random()*500*(0.2+chaos), filtQ: 4.0,
+    gainMult: 0.85, scale: [36.7,41.2,49.0,55.0,61.7,73.4,82.4,87.3],
+    detune: 18, // cents
+  },
+  {
+    name: 'THROAT',      // triangle through high-Q resonant filter → vocal quality
+    oscType: 'triangle', subType: 'sine',
+    filtFreq: ()=>400+Math.random()*600*(0.4+chaos), filtQ: 8.0,
+    gainMult: 1.1, scale: [36.7,43.7,49.0,55.0,65.4,73.4,82.4,98.0],
+  },
+  {
+    name: 'CHAOS',       // glitchy, wide pitch range, unstable
+    oscType: 'sawtooth', subType: 'square',
+    filtFreq: ()=>100+Math.random()*2000*chaos, filtQ: 5.0,
+    gainMult: 0.9, scale: [27.5,36.7,49.0,55.0,73.4,82.4,110.0,130.8],
+  },
+];
+let currentDroneKit = 0;
+
+function cycleDroneKit() {
+  currentDroneKit = (currentDroneKit + 1) % DRONE_KITS.length;
+  const k = DRONE_KITS[currentDroneKit];
+  document.getElementById('ticker').textContent = `▶ DRONE: ${k.name}`;
+  setTimeout(()=>{ document.getElementById('ticker').textContent = `✓ DRONE: ${k.name}`; }, 400);
+  // Apply new kit to running oscillators
+  applyDroneKit();
+}
+
+function applyDroneKit() {
+  if (!droneOsc || !droneFilter) return;
+  const kit = DRONE_KITS[currentDroneKit];
+  try {
+    droneOsc.type = kit.oscType;
+    subOsc.type = kit.subType;
+    droneFilter.Q.value = kit.filtQ;
+    droneFilter.frequency.value = kit.filtFreq();
+    droneGainNode.gain.value = 0.13 * kit.gainMult;
+    // Update bass scale
+    BASS_SCALE.length = 0;
+    kit.scale.forEach(f => BASS_SCALE.push(f));
+    bassScaleIdx = Math.min(bassScaleIdx, BASS_SCALE.length-1);
+    // Apply detune if kit has it
+    if (kit.detune) {
+      droneOsc.detune.value = kit.detune;
+      subOsc.detune.value = -kit.detune;
+    } else {
+      droneOsc.detune.value = 0;
+      subOsc.detune.value = 0;
+    }
+  } catch(e) { /* osc may have stopped */ }
 }
 
 function synthNoise(t, v=1) {
@@ -1190,17 +1330,15 @@ function randomizePatch() {
 // ══════════════════════════════════════════════════════════════
 
 // No proxy needed — Wikimedia Commons serves all media with Access-Control-Allow-Origin: *
-// We store FILENAMES only — real URLs are resolved via the Wikimedia API at runtime
-// because the upload path hash cannot be guessed (it's an MD5 of the filename).
+// Filenames verified from actual Wikimedia Commons file pages in search results.
+// URLs resolved at runtime via Wikipedia API (hash prefix cannot be guessed).
 const VOCAL_SOURCES = [
-  { title: 'TENNYSON READS THE CHARGE OF THE LIGHT BRIGADE — 1890', file: 'LightBrigade-Tennyson.ogg' },
-  { title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',            file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition_Crop.ogg' },
-  { title: 'WALT WHITMAN — AMERICA 1890',                           file: 'Walt_Whitman_-_America_Version_2.ogg' },
-  { title: 'WILLIAM JENNINGS BRYAN — CROSS OF GOLD 1908',           file: 'William_Jennings_Bryan_Cross_of_Gold.ogg' },
-  { title: 'GETTYSBURG ADDRESS — EDWARD EVERETT HALE',              file: 'Gettysburg_address_fewel.ogg' },
-  { title: 'NIKOLA TESLA — INTERVIEW RECORDING',                    file: 'Tesla_voice.ogg' },
-  { title: 'MARK TWAIN — RECORDED VOICE 1909',                      file: 'Mark_Twain_voice.ogg' },
-  { title: 'WILLIAM GLADSTONE — RECORDED SPEECH 1888',              file: 'William_Ewart_Gladstone_speech.ogg' },
+  { title: 'FLORENCE NIGHTINGALE — RECORDED VOICE 1890',       file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition_Crop.ogg' },
+  { title: 'FLORENCE NIGHTINGALE — FULL RECORDING 1890',       file: 'Florence_Nightingale_voice_-_1576A_2nd_Rendition.ogg' },
+  { title: 'OTTO VON BISMARCK — RECORDED VOICE 1889',          file: 'Otto_von_Bismarck_1889_recording.ogg' },
+  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.1 1941',       file: '1941_Roosevelt_speech_pearlharbor_p1.ogg' },
+  { title: 'ROOSEVELT — PEARL HARBOR ADDRESS PT.2 1941',       file: '1941_Roosevelt_speech_pearlharbor_p2.ogg' },
+  { title: 'HISTORY OF THE EARTH — SPOKEN WIKIPEDIA',          file: 'HISTORY_OF_THE_EARTH_-_WIKIPEDIA_SPOKEN_ARTICLE_(Part_01).ogg' },
 ];
 
 // Resolve a Wikimedia Commons filename to its real upload URL via the API
