@@ -489,16 +489,16 @@ const MODES = [
   {
     name:'TRIG', ca:'#c0392b', cb:'#5a1a14',
     idleIcon:'⬤', idleLabel:'TRIG',
-    hint:'DRUM PAD TRIGGERS',
+    hint:'MELODIC VOICE TRIGGERS',
     actions:[
-      { icon:'⬤', label:'KICK',     fn:()=>triggerPad(0) },
-      { icon:'◈', label:'SNARE',    fn:()=>triggerPad(1) },
-      { icon:'△', label:'HAT',      fn:()=>triggerPad(2) },
-      { icon:'◇', label:'CRASH',    fn:()=>triggerPad(3) },
-      { icon:'✦', label:'METAL',    fn:()=>triggerPad(4) },
-      { icon:'~', label:'NOISE',    fn:()=>triggerPad(5) },
-      { icon:'◎', label:'KIT\nNXT', fn:()=>cycleDrumKit() },
-      { icon:'ƒ', label:'VOCALKIT', fn:()=>cycleVocalSource() },
+      { icon:'⌇', label:'BASS\nPLUCK',  fn:()=>triggerPad(0) },
+      { icon:'♩', label:'PIANO\nTONE',  fn:()=>triggerPad(1) },
+      { icon:'≋', label:'DEEP\nDRONE',  fn:()=>triggerPad(2) },
+      { icon:'∿', label:'HIGH\nSTRING', fn:()=>triggerPad(3) },
+      { icon:'⬤', label:'SUB\nBOOM',   fn:()=>triggerPad(4) },
+      { icon:'◈', label:'CHORD\nSTAB',  fn:()=>triggerPad(5) },
+      { icon:'◇', label:'BOWED\nMETAL', fn:()=>triggerPad(6) },
+      { icon:'↑', label:'ARP\nRUN',     fn:()=>triggerPad(7) },
     ]
   },
   {
@@ -507,12 +507,12 @@ const MODES = [
     hint:'PATTERN TOOLS',
     actions:[
       { icon:'✕', label:'CLEAR',        fn:()=>clearPattern() },
-      { icon:'◀', label:'SHIFT<',       fn:()=>shiftSeq(-1) },
-      { icon:'▶', label:'SHIFT>',       fn:()=>shiftSeq(+1) },
+      { icon:'⟳', label:'REGEN',        fn:()=>generatePattern() },
+      { icon:'⚡', label:'RND\nROW',     fn:()=>randomizeRow() },
       { icon:'↑', label:'FILL',         fn:()=>fillDensity(+0.18) },
       { icon:'↓', label:'SPARSE',       fn:()=>fillDensity(-0.18) },
-      { icon:'⇄', label:'FLIP',         fn:()=>flipSeq() },
-      { icon:'≋', label:'DRONE\nKIT',   fn:()=>cycleDroneKit() },
+      { icon:'⇄', label:'SWAP\nSEQ',    fn:()=>swapSequences() },
+      { icon:'≋', label:'BASS\nRHY',    fn:()=>cycleBassRhythm() },
     ]
   },
   {
@@ -520,13 +520,13 @@ const MODES = [
     idleIcon:'≈', idleLabel:'FX',
     hint:'EFFECTS SWEEPS',
     actions:[
-      { icon:'○', label:'DRY',     fn:()=>setReverb(0) },
-      { icon:'●', label:'WET',     fn:()=>setReverb(85) },
-      { icon:'⊕', label:'DRIVE+',  fn:()=>nudgeDrive(+22) },
-      { icon:'⊖', label:'DRIVE−',  fn:()=>nudgeDrive(-22) },
-      { icon:'»', label:'DELAY+',  fn:()=>nudgeDelay(+120) },
-      { icon:'«', label:'DELAY−',  fn:()=>nudgeDelay(-120) },
-      { icon:'≈', label:'GLITCH+', fn:()=>nudgeGlitch(+22) },
+      { icon:'○', label:'DRY',          fn:()=>setReverb(0) },
+      { icon:'●', label:'WET',          fn:()=>setReverb(85) },
+      { icon:'⊕', label:'DRIVE+',       fn:()=>nudgeDrive(+22) },
+      { icon:'⊖', label:'DRIVE−',       fn:()=>nudgeDrive(-22) },
+      { icon:'»', label:'DELAY+',       fn:()=>nudgeDelay(+120) },
+      { icon:'≋', label:'DRONE\nKIT',   fn:()=>cycleDroneKit() },
+      { icon:'⟳', label:'GATE\nRND',    fn:()=>randomizeVocalGate() },
     ]
   },
 ];
@@ -762,12 +762,13 @@ async function bootAudio() {
   sampleGain.connect(masterDist);
 
   // Vocal grain output — prominent in mix, highpassed to sit above bass drone
-  vocalGain = ctx.createGain(); vocalGain.gain.value = 1.4;
+  vocalGain = ctx.createGain(); vocalGain.gain.value = 0.55;
+  vocalGainNode = vocalGain; // expose for scheduler duck control
   const vocalHP = ctx.createBiquadFilter();
-  vocalHP.type = 'highpass'; vocalHP.frequency.value = 180; // cut mud below bass
+  vocalHP.type = 'highpass'; vocalHP.frequency.value = 180;
   vocalGain.connect(vocalHP);
-  vocalHP.connect(masterGain);   // dry path — loud and clear
-  vocalHP.connect(reverbConv);   // wet/ghostly path
+  vocalHP.connect(masterGain);
+  vocalHP.connect(reverbConv);
 
   setLog('BUILDING PATTERNS...'); setProg(58);
   buildSeqGrid();
@@ -847,13 +848,14 @@ function buildNoise() {
 
   droneFilter = ctx.createBiquadFilter(); droneFilter.type = 'lowpass'; droneFilter.frequency.value = 320; droneFilter.Q.value = 3.5;
   droneGate   = ctx.createGain(); droneGate.gain.value = 0;  // starts silent, opened by rhythm
-  droneGainNode = ctx.createGain(); droneGainNode.gain.value = 0.13; // quiet but present
-  subGainNode   = ctx.createGain(); subGainNode.gain.value  = 0.09;
+  droneGainNode = ctx.createGain(); droneGainNode.gain.value = 0.55;
+  subGainNode   = ctx.createGain(); subGainNode.gain.value  = 0.32;
 
+  // Route: droneOsc → filter → gate → droneGainNode → masterDist (bypasses duckGain so kicks don't silence it)
   droneOsc.connect(droneFilter); droneFilter.connect(droneGate); droneGate.connect(droneGainNode);
-  subOsc.connect(droneGate); // sub also through gate
-  droneGainNode.connect(duckGain);
-  subGainNode.connect(duckGain);
+  droneGainNode.connect(masterDist);
+  // Sub routed through its own gain → masterDist directly (no gate — constant sub presence)
+  subOsc.connect(subGainNode); subGainNode.connect(masterDist);
 
   droneOsc.start(); subOsc.start();
 
@@ -866,36 +868,113 @@ function startBassRhythm() {
   bassLFOTimer = setInterval(pulseBassGate, 50);
 }
 
-// Called every 50ms — opens gate on beat subdivisions
-let bassPhase = 0;
-let bassGateOpen = false;
-let lastBassStepTime = 0;
+// ── BASS RHYTHM MODES ─────────────────────────────────────────
+// 5 distinct rhythmic behaviours for the drone gate
+const BASS_RHYTHM_MODES = [
+  { name: 'DRONE',   desc: 'slow open gate, melodic walk' },
+  { name: 'PULSE',   desc: 'tight eighth-note pump' },
+  { name: 'ARP',     desc: 'rapid ascending scale pattern' },
+  { name: 'STUTTER', desc: 'irregular syncopated hits' },
+  { name: 'BREATH',  desc: 'long slow swell, minimal rhythm' },
+];
+let bassRhythmMode = 0;
+
+// ARP step tracker — cycles through scale degrees in sequence
+let arpStep = 0;
+const ARP_PATTERNS = [
+  [0,1,2,3,2,1],           // up-down
+  [0,2,1,3,2,4],           // skip
+  [0,1,3,2,4,3,5,2],       // wandering
+  [0,3,2,1,4,3],           // down-skip
+];
+let arpPattern = ARP_PATTERNS[0];
+
+// Stutter pattern — 16-step binary, regenerated on mode change
+let stutterPattern = [];
+function newStutterPattern() {
+  stutterPattern = Array.from({length:32}, () => Math.random() < (0.35 + chaos*0.3));
+}
+newStutterPattern();
+
+let stutterStep = 0;
+let breathPhase = 0;
 
 function pulseBassGate() {
   if (!ctx || !droneGate) return;
-  const stepDur = 60 / bpm / 2; // eighth-note grid
   const now = ctx.currentTime;
+  const stepDur = 60 / bpm / 4; // sixteenth-note grid for all modes
 
-  // Walk bass note every 2–4 beats, semi-randomly
-  if (now - lastBassStepTime > stepDur * (2 + Math.floor(Math.random() * 3))) {
-    lastBassStepTime = now;
-    // Move to adjacent scale degree with occasional jump
-    const jump = Math.random() < 0.25 ? Math.floor(Math.random() * 3) + 2 : 1;
-    const dir = Math.random() < 0.6 ? 1 : -1;
-    bassScaleIdx = Math.max(0, Math.min(BASS_SCALE.length - 1, bassScaleIdx + dir * jump));
-    const freq = BASS_SCALE[bassScaleIdx] * (1 + (Math.random() - 0.5) * chaos * 0.08);
-    droneOsc.frequency.setValueAtTime(freq, now);
-    subOsc.frequency.setValueAtTime(freq / 2, now);
-    droneFilter.frequency.setValueAtTime(180 + Math.random() * 400 * (0.3 + chaos), now);
+  bassPhase += 50 / (stepDur * 1000);
+  if (bassPhase >= 1) {
+    bassPhase -= 1;
+    // On each step boundary — advance mode-specific counters and walk pitch
+    arpStep = (arpStep + 1) % arpPattern.length;
+    stutterStep = (stutterStep + 1) % stutterPattern.length;
+
+    // Pitch movement — mode-dependent speed
+    const pitchChangeProb = bassRhythmMode === 2 ? 1.0  // ARP: every step
+                          : bassRhythmMode === 4 ? 0.05  // BREATH: very slow
+                          : bassRhythmMode === 3 ? 0.6   // STUTTER: often
+                          : 0.25;                         // DRONE/PULSE: occasional
+
+    if (Math.random() < pitchChangeProb) {
+      let newIdx;
+      if (bassRhythmMode === 2) {
+        // ARP: follow the arp pattern exactly
+        const offset = arpPattern[arpStep % arpPattern.length];
+        newIdx = (bassScaleIdx + offset) % BASS_SCALE.length;
+      } else {
+        const jump = Math.random() < 0.25 ? Math.floor(Math.random()*3)+2 : 1;
+        const dir = Math.random() < 0.6 ? 1 : -1;
+        newIdx = Math.max(0, Math.min(BASS_SCALE.length-1, bassScaleIdx + dir*jump));
+      }
+      bassScaleIdx = newIdx;
+      const freq = BASS_SCALE[bassScaleIdx] * (1 + (Math.random()-0.5)*chaos*0.06);
+      droneOsc.frequency.setValueAtTime(freq, now);
+      subOsc.frequency.setValueAtTime(freq / 2, now);
+      droneFilter.frequency.setValueAtTime(180 + Math.random()*400*(0.3+chaos), now);
+    }
   }
 
-  // Rhythmic gate: open on beat, close quickly → pumping bass pattern
-  bassPhase += 50 / (stepDur * 1000);
-  if (bassPhase >= 1) bassPhase -= 1;
+  // Gate behaviour per mode
+  let targetGain = 0;
+  const peak = 0.85 + chaos * 0.2;
 
-  const gate = bassPhase < 0.45 ? 1 : 0; // on for first half of step
-  const targetGain = gate * (0.12 + chaos * 0.06);
-  droneGate.gain.setTargetAtTime(targetGain, now, gate ? 0.01 : 0.08);
+  switch (bassRhythmMode) {
+    case 0: // DRONE — slow wide gate, mostly open
+      targetGain = (bassPhase < 0.75) ? peak * 0.8 : 0;
+      break;
+    case 1: // PULSE — tight eighth-note pump
+      targetGain = (bassPhase < 0.42) ? peak : 0;
+      break;
+    case 2: // ARP — very short staccato hits, changes pitch each step
+      targetGain = (bassPhase < 0.22) ? peak * 1.1 : 0;
+      break;
+    case 3: // STUTTER — follows random binary pattern
+      targetGain = stutterPattern[stutterStep] ? peak * (0.6 + Math.random()*0.5) : 0;
+      break;
+    case 4: // BREATH — long sine-shaped swell, very slow
+      breathPhase += 50 / (stepDur * 1000 * 8); // 8x slower
+      if (breathPhase >= 1) breathPhase -= 1;
+      targetGain = peak * 0.7 * Math.max(0, Math.sin(breathPhase * Math.PI));
+      break;
+  }
+
+  const tc = targetGain > 0 ? 0.01 : 0.06;
+  droneGate.gain.setTargetAtTime(targetGain, now, tc);
+}
+
+function cycleBassRhythm() {
+  bassRhythmMode = (bassRhythmMode + 1) % BASS_RHYTHM_MODES.length;
+  const m = BASS_RHYTHM_MODES[bassRhythmMode];
+  // On ARP, pick a new arp pattern
+  if (bassRhythmMode === 2) {
+    arpPattern = ARP_PATTERNS[Math.floor(Math.random()*ARP_PATTERNS.length)];
+    arpStep = 0;
+  }
+  if (bassRhythmMode === 3) newStutterPattern();
+  bassPhase = 0;
+  document.getElementById('ticker').textContent = `▶ BASS: ${m.name} — ${m.desc}`;
 }
 
 function stopBassRhythm() {
@@ -904,42 +983,90 @@ function stopBassRhythm() {
 }
 
 // ── DRUM KITS ─────────────────────────────────────────────────
-// Each kit defines synthesis params. Active kit selected by cycleDrumKit().
 const DRUM_KITS = [
   {
     name: 'INDUSTRIAL',
-    kick:  { startF:105, endF:35, decay:.38, drive:180, gain:1.1 },
-    snare: { toneF:210, toneDecay:.12, noiseF:1800, noiseDecay:.22, gain:.65 },
-    hat:   { hpF:7200, closedDecay:.05, openDecay:.38 },
+    kick:  { startF:105, endF:35,  decay:.38, drive:180, gain:1.1 },
+    snare: { toneF:210,  toneDecay:.12, noiseF:1800, noiseDecay:.22, gain:.65 },
+    hat:   { hpF:7200,  closedDecay:.05, openDecay:.38 },
     crash: { freqs:[200,318,477,634,811,1250], bpF:4500, decay:1.6 },
   },
   {
     name: 'ANALOG 808',
-    kick:  { startF:160, endF:42, decay:.55, drive:60, gain:1.3 },
-    snare: { toneF:180, toneDecay:.18, noiseF:900, noiseDecay:.35, gain:.5 },
-    hat:   { hpF:9000, closedDecay:.03, openDecay:.28 },
+    kick:  { startF:160, endF:42,  decay:.55, drive:60,  gain:1.3 },
+    snare: { toneF:180,  toneDecay:.18, noiseF:900,  noiseDecay:.35, gain:.5  },
+    hat:   { hpF:9000,  closedDecay:.03, openDecay:.28 },
     crash: { freqs:[260,390,540,720,960,1400], bpF:5500, decay:1.2 },
   },
   {
     name: 'METAL',
-    kick:  { startF:80, endF:28, decay:.22, drive:400, gain:.9 },
-    snare: { toneF:320, toneDecay:.06, noiseF:3000, noiseDecay:.14, gain:.9 },
+    kick:  { startF:80,  endF:28,  decay:.22, drive:400, gain:.9  },
+    snare: { toneF:320,  toneDecay:.06, noiseF:3000, noiseDecay:.14, gain:.9  },
     hat:   { hpF:10000, closedDecay:.02, openDecay:.18 },
     crash: { freqs:[180,290,430,610,820,1100,1600], bpF:6000, decay:2.2 },
   },
   {
     name: 'BROKEN',
-    kick:  { startF:70, endF:25, decay:.7, drive:300, gain:1.0 },
-    snare: { toneF:145, toneDecay:.28, noiseF:600, noiseDecay:.48, gain:.75 },
-    hat:   { hpF:5500, closedDecay:.09, openDecay:.55 },
+    kick:  { startF:70,  endF:25,  decay:.7,  drive:300, gain:1.0 },
+    snare: { toneF:145,  toneDecay:.28, noiseF:600,  noiseDecay:.48, gain:.75 },
+    hat:   { hpF:5500,  closedDecay:.09, openDecay:.55 },
     crash: { freqs:[155,240,370,510,720,980,1380], bpF:3200, decay:2.8 },
   },
   {
     name: 'SPARSE',
-    kick:  { startF:90, endF:40, decay:.9, drive:100, gain:.8 },
-    snare: { toneF:190, toneDecay:.08, noiseF:2200, noiseDecay:.5, gain:.4 },
-    hat:   { hpF:8000, closedDecay:.015, openDecay:.22 },
+    kick:  { startF:90,  endF:40,  decay:.9,  drive:100, gain:.8  },
+    snare: { toneF:190,  toneDecay:.08, noiseF:2200, noiseDecay:.5,  gain:.4  },
+    hat:   { hpF:8000,  closedDecay:.015,openDecay:.22 },
     crash: { freqs:[220,340,500,680,900], bpF:4000, decay:3.5 },
+  },
+  {
+    name: 'VINTAGE',   // warm lo-fi tape machine feel
+    kick:  { startF:130, endF:38,  decay:.44, drive:80,  gain:1.2 },
+    snare: { toneF:195,  toneDecay:.16, noiseF:1200, noiseDecay:.30, gain:.6  },
+    hat:   { hpF:6000,  closedDecay:.06, openDecay:.32 },
+    crash: { freqs:[240,360,520,700,950,1300], bpF:3800, decay:2.0 },
+  },
+  {
+    name: 'JUNGLE',    // fast hats, pitched snare, hard kick
+    kick:  { startF:140, endF:44,  decay:.28, drive:220, gain:1.4 },
+    snare: { toneF:260,  toneDecay:.09, noiseF:2400, noiseDecay:.16, gain:.8  },
+    hat:   { hpF:11000, closedDecay:.018,openDecay:.14 },
+    crash: { freqs:[310,480,650,890,1200,1600], bpF:6500, decay:1.0 },
+  },
+  {
+    name: 'DOOM',      // extremely slow and heavy
+    kick:  { startF:60,  endF:22,  decay:1.2, drive:500, gain:1.5 },
+    snare: { toneF:120,  toneDecay:.4,  noiseF:400,  noiseDecay:.9,  gain:.9  },
+    hat:   { hpF:4000,  closedDecay:.12, openDecay:.9  },
+    crash: { freqs:[100,180,280,400,580,800], bpF:2200, decay:4.5 },
+  },
+  {
+    name: 'GLITCH',    // tiny micro-hits, pitch randomized
+    kick:  { startF:200, endF:50,  decay:.12, drive:600, gain:1.0 },
+    snare: { toneF:440,  toneDecay:.04, noiseF:4000, noiseDecay:.08, gain:1.0 },
+    hat:   { hpF:12000, closedDecay:.01, openDecay:.08 },
+    crash: { freqs:[500,900,1400,2000,2800,3800], bpF:8000, decay:0.5 },
+  },
+  {
+    name: 'ACOUSTIC',  // natural room sound
+    kick:  { startF:95,  endF:38,  decay:.5,  drive:40,  gain:1.1 },
+    snare: { toneF:230,  toneDecay:.14, noiseF:1600, noiseDecay:.28, gain:.7  },
+    hat:   { hpF:8500,  closedDecay:.04, openDecay:.25 },
+    crash: { freqs:[280,420,580,760,1020,1380], bpF:5000, decay:2.5 },
+  },
+  {
+    name: 'ELECTRO',   // sharp transients, electronic pop
+    kick:  { startF:180, endF:48,  decay:.32, drive:140, gain:1.35},
+    snare: { toneF:280,  toneDecay:.10, noiseF:2800, noiseDecay:.18, gain:.75 },
+    hat:   { hpF:9500,  closedDecay:.025,openDecay:.20 },
+    crash: { freqs:[350,520,720,980,1320,1750], bpF:6200, decay:1.4 },
+  },
+  {
+    name: 'RITUAL',    // slow tribal, huge reverberant hits
+    kick:  { startF:75,  endF:30,  decay:.85, drive:250, gain:1.3 },
+    snare: { toneF:160,  toneDecay:.35, noiseF:800,  noiseDecay:.65, gain:.85 },
+    hat:   { hpF:3500,  closedDecay:.08, openDecay:.7  },
+    crash: { freqs:[130,210,320,460,650,900,1200], bpF:2800, decay:5.0 },
   },
 ];
 let currentKit = 0;
@@ -1132,9 +1259,19 @@ function cycleDroneKit() {
   currentDroneKit = (currentDroneKit + 1) % DRONE_KITS.length;
   const k = DRONE_KITS[currentDroneKit];
   document.getElementById('ticker').textContent = `▶ DRONE: ${k.name}`;
-  setTimeout(()=>{ document.getElementById('ticker').textContent = `✓ DRONE: ${k.name}`; }, 400);
-  // Apply new kit to running oscillators
+  setTimeout(()=>{ document.getElementById('ticker').textContent = `✓ DRONE: ${k.name}`; }, 600);
   applyDroneKit();
+  // Force gate open briefly so the character change is immediately audible
+  if (droneGate) {
+    const now = ctx.currentTime;
+    droneGate.gain.cancelScheduledValues(now);
+    droneGate.gain.setValueAtTime(1.0, now);
+    droneGate.gain.linearRampToValueAtTime(0, now + 0.8);
+  }
+  // Jump to a new random position in the scale for immediate pitch change
+  bassScaleIdx = Math.floor(Math.random() * BASS_SCALE.length);
+  bassPhase = 0;
+  
 }
 
 function applyDroneKit() {
@@ -1145,7 +1282,7 @@ function applyDroneKit() {
     subOsc.type = kit.subType;
     droneFilter.Q.value = kit.filtQ;
     droneFilter.frequency.value = kit.filtFreq();
-    droneGainNode.gain.value = 0.13 * kit.gainMult;
+    droneGainNode.gain.value = 0.55 * kit.gainMult;
     // Update bass scale
     BASS_SCALE.length = 0;
     kit.scale.forEach(f => BASS_SCALE.push(f));
@@ -1187,32 +1324,231 @@ function trigGlitch(t) {
   }
 }
 
-function trigSample(t, v=1) {
-  fireVocalGrain(t);
+// ── NODE LIMITER — prevents audio graph overflow ──────────────
+// Simple approach: track steps fired, skip if too many fired recently
+let stepsThisCycle = 0;
+setInterval(() => { stepsThisCycle = 0; }, 100); // reset every 100ms
+
+// ── VOCAL RHYTHM GATE ─────────────────────────────────────────
+// A randomly generated binary pattern (per session, re-randomizable)
+// that gates whether a vocal grain fires on each step.
+// Makes vocals feel rhythmic rather than constant.
+let vocalGatePattern = new Array(16).fill(0);
+let vocalGateGain = null; // additional gain node for reactive ducking
+
+function randomizeVocalGate() {
+  // Sparse syncopated pattern — mostly rests, hits on offbeats
+  vocalGatePattern = Array.from({length:16}, (_,i) => {
+    if (i % 4 === 0) return Math.random() < 0.25; // rarely on downbeats
+    if (i % 2 === 0) return Math.random() < 0.55; // more on 2/4
+    return Math.random() < 0.7;                   // most on offbeats
+  });
 }
+randomizeVocalGate(); // initial pattern
+
+// ── BASS SYNTH VOICES (for TRIG pads) ────────────────────────
+// These replace the drum pads in TRIG mode with melodic/textural voices
+const BASS_NOTES = [36.7, 41.2, 49.0, 55.0, 61.7, 65.4, 73.4, 82.4]; // E1–E2 pentatonic
+
+function trigBassPluck(noteIdx) {
+  
+  const t = ctx.currentTime + 0.015;
+  const freq = BASS_NOTES[noteIdx % BASS_NOTES.length] * (1 + (Math.random()-0.5)*chaos*0.04);
+  const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = freq;
+  const flt = ctx.createBiquadFilter(); flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(1200 + Math.random()*600, t);
+  flt.frequency.exponentialRampToValueAtTime(180, t + 0.8);
+  flt.Q.value = 3.0;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(1.8, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.9 + chaos*0.4);
+  o.connect(flt); flt.connect(g); g.connect(masterDist);
+  o.start(t); o.stop(t + 1.0);
+}
+
+function trigPianoTone(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const root = BASS_NOTES[noteIdx % BASS_NOTES.length] * 2;
+  const partials = [1, 2, 3.01, 4.02, 5.04];
+  const detunes  = [0, +8, -12, +5, -7];
+  partials.forEach((p, i) => {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.value = root * p;
+    o.detune.value = detunes[i] * (1 + chaos * 2);
+    const g = ctx.createGain();
+    const decay = 1.4 - i * 0.18 + chaos * 0.3;
+    g.gain.setValueAtTime(0.7 / (i+1), t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    o.connect(g); g.connect(masterDist);
+    o.start(t); o.stop(t + decay + 0.05);
+  });
+}
+
+function trigDeepDrone(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const freq = BASS_NOTES[noteIdx % BASS_NOTES.length] * 0.5;
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = freq;
+  const o2 = ctx.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = freq * 1.005;
+  const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 600; flt.Q.value = 5;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(1.4, t + 0.3);
+  g.gain.setValueAtTime(1.4, t + 1.5);
+  g.gain.linearRampToValueAtTime(0, t + 2.2);
+  o1.connect(flt); o2.connect(flt); flt.connect(g); g.connect(masterDist);
+  o1.start(t); o2.start(t); o1.stop(t+2.3); o2.stop(t+2.3);
+}
+
+function trigHighString(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const freq = BASS_NOTES[noteIdx % BASS_NOTES.length] * 4;
+  const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = freq;
+  const vibLFO = ctx.createOscillator(); vibLFO.frequency.value = 5.5;
+  const vibGain = ctx.createGain(); vibGain.gain.value = freq * 0.012;
+  vibLFO.connect(vibGain); vibGain.connect(o.frequency);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(1.2, t+0.08);
+  g.gain.setValueAtTime(1.2, t + 0.6);
+  g.gain.linearRampToValueAtTime(0, t + 1.0);
+  o.connect(g); g.connect(reverbConv); g.connect(masterDist);
+  vibLFO.start(t); o.start(t); vibLFO.stop(t+1.1); o.stop(t+1.1);
+}
+
+function trigSubBoom(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const freq = BASS_NOTES[noteIdx % BASS_NOTES.length] * 0.5;
+  const o = ctx.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(freq * 2.5, t);
+  o.frequency.exponentialRampToValueAtTime(freq, t + 0.12);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(2.5, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t + 0.75);
+}
+
+function trigChordStab(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const root = BASS_NOTES[noteIdx % BASS_NOTES.length] * 2;
+  const intervals = [1, 1.498, 1.782];
+  intervals.forEach((interval) => {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.value = root * interval * (1 + (Math.random()-0.5)*chaos*0.02);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.9, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35 + chaos*0.2);
+    o.connect(g); g.connect(masterDist);
+    o.start(t); o.stop(t + 0.5);
+  });
+}
+
+function trigBowedMetal(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const freq = BASS_NOTES[noteIdx % BASS_NOTES.length] * 3;
+  const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq;
+  const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = freq * 2.756;
+  const g = ctx.createGain(), g2 = ctx.createGain();
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1.1, t+0.4);
+  g.gain.linearRampToValueAtTime(0, t + 2.5);
+  g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(0.5, t+0.2);
+  g2.gain.linearRampToValueAtTime(0, t + 1.8);
+  o.connect(g); o2.connect(g2);
+  g.connect(reverbConv); g.connect(masterDist);
+  g2.connect(reverbConv); g2.connect(masterDist);
+  o.start(t); o2.start(t); o.stop(t+2.6); o2.stop(t+2.6);
+}
+
+function trigArpRun(noteIdx) {
+  const t = ctx.currentTime + 0.015;
+  const root = BASS_NOTES[noteIdx % BASS_NOTES.length] * 2;
+  const steps = [1, 1.25, 1.5, 2];
+  steps.forEach((interval, i) => {
+    const ti = t + i * 0.055;
+    const o = ctx.createOscillator(); o.type = 'triangle';
+    o.frequency.value = root * interval;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(1.0, ti);
+    g.gain.exponentialRampToValueAtTime(0.001, ti + 0.18);
+    o.connect(g); g.connect(masterDist);
+    o.start(ti); o.stop(ti + 0.2);
+  });
+}
+
+// ── UPDATED SCHEDULER ─────────────────────────────────────────
+function scheduleStep(s, t) {
+  const hasKick  = seqData[0][s];
+  const hasSnare = seqData[1][s];
+
+  // Drums always fire — they're short and self-cleaning
+  seqData[0][s] && synthKick(t, .8+Math.random()*.4);
+  seqData[1][s] && synthSnare(t, .7+Math.random()*.3);
+  seqData[2][s] && synthHihat(t, Math.random()<.08, .4+Math.random()*.3);
+  seqData[3][s] && synthCrash(t, .55+Math.random()*.4);
+  // Metal and noise: skip if lots already firing this step to save CPU
+  const busyStep = hasKick && hasSnare;
+  seqData[4][s] && !busyStep && synthMetal(t, .6+Math.random()*.4);
+  seqData[5][s] && synthNoise(t, .5+Math.random()*.5);
+
+  // Vocal: gated pattern + duck on kick/snare
+  const gateOpen = vocalGatePattern[s % 16];
+  if (gateOpen && vocalBuffer && Math.random() < 0.7) {
+    if (vocalGainNode) {
+      const duckAmt = hasKick ? 0.12 : hasSnare ? 0.35 : 0.72;
+      vocalGainNode.gain.cancelScheduledValues(t);
+      vocalGainNode.gain.setValueAtTime(duckAmt, t);
+      vocalGainNode.gain.linearRampToValueAtTime(0.72, t + (hasKick ? 0.3 : 0.15));
+    }
+    fireVocalGrain(t);
+  }
+
+  // Feedback/glitch — low probability to save CPU
+  if (Math.random() < chaos * 0.04) trigFeedback(t);
+  if (Math.random() < glitchRate * 0.04) trigGlitch(t);
+}
+
+// expose vocalGain as vocalGainNode for scheduler access
+let vocalGainNode = null;
+
+function trigSample(t) { fireVocalGrain(t); }
 
 function triggerPad(idx) {
   if (!audioReady) return;
   if (ctx.state==='suspended') ctx.resume();
-  const t = ctx.currentTime + .015;
-  [()=>synthKick(t), ()=>synthSnare(t), ()=>synthHihat(t,false),
-   ()=>synthCrash(t), ()=>synthMetal(t), ()=>synthNoise(t),
-   ()=>trigSample(t), ()=>trigFeedback(t), ()=>trigGlitch(t)][idx]?.();
+  // TRIG pads now trigger bass/melodic voices instead of drums
+  // Each pad is a different voice type, cycling through the 8 BASS_NOTES
+  const noteIdx = idx % BASS_NOTES.length;
+  [
+    ()=>trigBassPluck(noteIdx),
+    ()=>trigPianoTone(noteIdx),
+    ()=>trigDeepDrone(noteIdx),
+    ()=>trigHighString(noteIdx),
+    ()=>trigSubBoom(noteIdx),
+    ()=>trigChordStab(noteIdx),
+    ()=>trigBowedMetal(noteIdx),
+    ()=>trigArpRun(noteIdx),
+    ()=>trigFeedback(ctx.currentTime+.015),
+    ()=>trigGlitch(ctx.currentTime+.015),
+  ][idx]?.();
 }
 
 // ── SEQUENCER ─────────────────────────────────────────────────
-function buildSeqGrid() {
-  // No visible grid — just data
-}
-function rc(r,s) {
-  // internal only
-}
+function buildSeqGrid() {}
+function rc() {}
 function generatePattern() {
-  const dens=[.25,.2,.5,.1,.15,.12,.15];
+  const dens=[.28,.22,.5,.1,.15,.12,.15];
   seqData = Array.from({length:ROWS}, (_,r) => Array.from({length:STEPS}, (__,s) => {
-    if (r===0&&(s===0||s===8)) return true;
-    if (r===1&&(s===4||s===12)) return Math.random()>.3;
-    if (r===2&&s%2===0) return Math.random()>.3;
+    if (r===0) {
+      // Kick: half the time anchor on 1+9, half the time free
+      if (Math.random() < 0.5) return s===0||s===8 ? true : Math.random() < dens[0]*(1+chaos*.5);
+      else return Math.random() < dens[0]*(1+chaos*.6);
+    }
+    if (r===1) {
+      // Snare: half the time land on 2+4, half the time go anywhere
+      if (Math.random() < 0.5) return (s===4||s===12) ? Math.random()>.2 : Math.random()<dens[1]*(1+chaos*.4);
+      else return Math.random() < dens[1]*(1+chaos*.7);
+    }
+    if (r===2 && s%2===0) return Math.random()>.3;
     return Math.random() < dens[r]*(1+chaos*.5);
   }));
 }
@@ -1233,6 +1569,30 @@ function shiftSeq(dir) {
 function fillDensity(delta) {
   seqData = seqData.map(row => row.map(() => Math.random() < (0.3 + delta) ? true : false));
 }
+function randomizeRow() {
+  // Pick a random drum row and fully re-randomize just that row
+  const r = Math.floor(Math.random() * ROWS);
+  const dens = [.35, .25, .55, .12, .18, .14, .16][r];
+  seqData[r] = Array.from({length:STEPS}, (_,s) => {
+    if (r===0 && (s===0||s===8)) return true; // keep kick anchor
+    return Math.random() < dens * (1 + chaos * 0.6);
+  });
+  document.getElementById('ticker').textContent =
+    `✓ RANDOMIZED: ${['KICK','SNARE','HAT','CRASH','METAL','NOISE','SMPL'][r]}`;
+}
+
+function swapSequences() {
+  // Pick two random rows and swap their patterns
+  const rows = Array.from({length:ROWS}, (_,i)=>i);
+  const a = rows.splice(Math.floor(Math.random()*rows.length), 1)[0];
+  const b = rows[Math.floor(Math.random()*rows.length)];
+  const tmp = seqData[a];
+  seqData[a] = seqData[b];
+  seqData[b] = tmp;
+  const labels = ['KICK','SNARE','HAT','CRASH','METAL','NOISE','SMPL'];
+  document.getElementById('ticker').textContent = `⇄ SWAP: ${labels[a]} ↔ ${labels[b]}`;
+}
+
 function flipSeq() {
   seqData = seqData.map(row => [...row].reverse());
 }
@@ -1246,32 +1606,6 @@ function scheduler() {
     currentStep = (currentStep+1) % STEPS;
   }
 }
-function scheduleStep(s, t) {
-  const hasKick  = seqData[0][s];
-  const hasSnare = seqData[1][s];
-
-  seqData[0][s] && synthKick(t, .8+Math.random()*.4);
-  seqData[1][s] && synthSnare(t, .7+Math.random()*.3);
-  seqData[2][s] && synthHihat(t, Math.random()<.08, .4+Math.random()*.3);
-  seqData[3][s] && synthCrash(t, .55+Math.random()*.4);
-  seqData[4][s] && synthMetal(t, .6+Math.random()*.4);
-  seqData[5][s] && synthNoise(t, .5+Math.random()*.5);
-
-  // Vocal grains: fire on most steps, slightly less on kick hits to avoid masking.
-  // Grains are long enough that they overlap and create continuous vocal presence.
-  const vocalProb = hasKick ? 0.45 : 0.85;
-  if (Math.random() < vocalProb && vocalBuffer) {
-    fireVocalGrain(t);
-    // At higher chaos, layer a second offset grain for ghostly doubling
-    if (chaos > 0.35 && Math.random() < 0.45) {
-      const stepDur = 60 / bpm / 4;
-      fireVocalGrain(t + stepDur * (0.25 + Math.random() * 0.5));
-    }
-  }
-
-  if (Math.random()<chaos*.07) trigFeedback(t);
-  if (Math.random()<glitchRate*.06) trigGlitch(t);
-}
 
 function togglePlay() {
   if (!audioReady) return;
@@ -1284,7 +1618,7 @@ function startPlay() {
   document.getElementById('rl').classList.add('go');
   document.getElementById('rr').classList.add('go');
   document.getElementById('led-tape').classList.add('on');
-  bassPhase = 0; lastBassStepTime = 0; // reset bass to sync with beat
+  bassPhase = 0;  // reset bass to sync with beat
 }
 function stopPlay() {
   isPlaying = false; clearInterval(schedulerTimer); currentStep = 0;
@@ -1311,14 +1645,59 @@ function buildImpulse(dur,decay) {
 
 function randomizePatch() {
   if (!audioReady) return;
-  const r=(a,b)=>Math.floor(Math.random()*(b-a)+a);
-  chaos=r(20,85)/100; glitchRate=chaos*.8;
-  driveVal=r(30,100); updateDistortion(driveVal);
-  if(masterFilter) masterFilter.frequency.value=r(400,5000);
-  delayTimeVal=r(80,600); if(masterDelay) masterDelay.delayTime.value=delayTimeVal/1000;
-  setReverb(r(10,70));
-  bpm=r(88,170);
-  buildSyntheticSample(); generatePattern();
+  const r = (a,b) => Math.floor(Math.random()*(b-a)+a);
+  const rf = (a,b) => Math.random()*(b-a)+a;
+
+  // FX chain
+  chaos      = rf(0.15, 0.9); glitchRate = chaos * 0.8;
+  driveVal   = r(20, 95);     updateDistortion(driveVal);
+  delayTimeVal = r(60, 650);  if (masterDelay) masterDelay.delayTime.value = delayTimeVal/1000;
+  setReverb(r(8, 80));
+  if (masterFilter) masterFilter.frequency.value = r(300, 8000);
+
+  // BPM
+  bpm = r(78, 175);
+
+  // Bass rhythm mode
+  bassRhythmMode = r(0, BASS_RHYTHM_MODES.length);
+  if (bassRhythmMode === 2) {
+    arpPattern = ARP_PATTERNS[Math.floor(Math.random()*ARP_PATTERNS.length)];
+    arpStep = 0;
+  }
+  if (bassRhythmMode === 3) newStutterPattern();
+  bassPhase = 0;
+
+  // Drum kit
+  currentKit = r(0, DRUM_KITS.length);
+
+  // Metal hit kit
+  currentMetalKit = r(0, METAL_KITS.length);
+
+  // Drone kit — cycle and apply
+  currentDroneKit = r(0, DRONE_KITS.length);
+  applyDroneKit();
+  if (droneGate) {
+    const now = ctx.currentTime;
+    droneGate.gain.cancelScheduledValues(now);
+    droneGate.gain.setValueAtTime(1.0, now);
+    droneGate.gain.linearRampToValueAtTime(0, now + 0.6);
+  }
+  bassScaleIdx = r(0, BASS_SCALE.length);
+  bassPhase = 0; 
+
+  // Vocal gate pattern
+  randomizeVocalGate();
+
+  // Pattern
+  generatePattern();
+
+  // Ticker summary
+  const dk  = DRUM_KITS[currentKit].name;
+  const mk  = METAL_KITS[currentMetalKit].name;
+  const drk = DRONE_KITS[currentDroneKit].name;
+  const brm = BASS_RHYTHM_MODES[bassRhythmMode].name;
+  document.getElementById('ticker').textContent =
+    `⊛ DRUMS:${dk} METAL:${mk} DRONE:${drk} BASS:${brm} BPM:${bpm}`;
 }
 
 // ══════════════════════════════════════════════════════════════
