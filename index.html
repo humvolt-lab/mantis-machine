@@ -525,9 +525,9 @@ const MODES = [
     actions:[
       { icon:'○', label:'DRY',          fn:()=>setReverb(0) },
       { icon:'●', label:'WET',          fn:()=>setReverb(85) },
-      { icon:'⊕', label:'DRIVE+',       fn:()=>nudgeDrive(+22) },
-      { icon:'⊖', label:'DRIVE−',       fn:()=>nudgeDrive(-22) },
-      { icon:'»', label:'DELAY+',       fn:()=>nudgeDelay(+120) },
+      { icon:'⊕', label:'DRIVE+',       fn:()=>nudgeDrive(+35) },
+      { icon:'⊖', label:'DRIVE−',       fn:()=>nudgeDrive(-35) },
+      { icon:'»', label:'DELAY+',       fn:()=>nudgeDelay(+200) },
       { icon:'≋', label:'DRONE\nKIT',   fn:()=>cycleDroneKit() },
       { icon:'⟳', label:'GATE\nRND',    fn:()=>randomizeVocalGate() },
     ]
@@ -989,85 +989,85 @@ function stopBassRhythm() {
 const DRUM_KITS = [
   {
     name: 'INDUSTRIAL',
-    kick:  { startF:105, endF:35,  decay:.38, drive:180, gain:1.1 },
-    snare: { toneF:210,  toneDecay:.12, noiseF:1800, noiseDecay:.22, gain:.65 },
+    kick:  { startF:105, endF:32,  decay:.65, drive:180, gain:1.4 },
+    snare: { toneF:210,  toneDecay:.14, noiseF:1800, noiseDecay:.24, gain:.8  },
     hat:   { hpF:7200,  closedDecay:.05, openDecay:.38 },
     crash: { freqs:[200,318,477,634,811,1250], bpF:4500, decay:1.6 },
   },
   {
     name: 'ANALOG 808',
-    kick:  { startF:160, endF:42,  decay:.55, drive:60,  gain:1.3 },
-    snare: { toneF:180,  toneDecay:.18, noiseF:900,  noiseDecay:.35, gain:.5  },
+    kick:  { startF:160, endF:40,  decay:.9,  drive:60,  gain:1.6 },
+    snare: { toneF:180,  toneDecay:.20, noiseF:900,  noiseDecay:.38, gain:.65 },
     hat:   { hpF:9000,  closedDecay:.03, openDecay:.28 },
     crash: { freqs:[260,390,540,720,960,1400], bpF:5500, decay:1.2 },
   },
   {
     name: 'METAL',
-    kick:  { startF:80,  endF:28,  decay:.22, drive:400, gain:.9  },
-    snare: { toneF:320,  toneDecay:.06, noiseF:3000, noiseDecay:.14, gain:.9  },
+    kick:  { startF:80,  endF:26,  decay:.45, drive:400, gain:1.2 },
+    snare: { toneF:320,  toneDecay:.07, noiseF:3000, noiseDecay:.16, gain:1.0 },
     hat:   { hpF:10000, closedDecay:.02, openDecay:.18 },
     crash: { freqs:[180,290,430,610,820,1100,1600], bpF:6000, decay:2.2 },
   },
   {
     name: 'BROKEN',
-    kick:  { startF:70,  endF:25,  decay:.7,  drive:300, gain:1.0 },
-    snare: { toneF:145,  toneDecay:.28, noiseF:600,  noiseDecay:.48, gain:.75 },
+    kick:  { startF:70,  endF:22,  decay:1.0, drive:300, gain:1.3 },
+    snare: { toneF:145,  toneDecay:.30, noiseF:600,  noiseDecay:.52, gain:.9  },
     hat:   { hpF:5500,  closedDecay:.09, openDecay:.55 },
     crash: { freqs:[155,240,370,510,720,980,1380], bpF:3200, decay:2.8 },
   },
   {
     name: 'SPARSE',
-    kick:  { startF:90,  endF:40,  decay:.9,  drive:100, gain:.8  },
-    snare: { toneF:190,  toneDecay:.08, noiseF:2200, noiseDecay:.5,  gain:.4  },
+    kick:  { startF:90,  endF:38,  decay:1.2, drive:100, gain:1.1 },
+    snare: { toneF:190,  toneDecay:.10, noiseF:2200, noiseDecay:.55, gain:.55 },
     hat:   { hpF:8000,  closedDecay:.015,openDecay:.22 },
     crash: { freqs:[220,340,500,680,900], bpF:4000, decay:3.5 },
   },
   {
-    name: 'VINTAGE',   // warm lo-fi tape machine feel
-    kick:  { startF:130, endF:38,  decay:.44, drive:80,  gain:1.2 },
-    snare: { toneF:195,  toneDecay:.16, noiseF:1200, noiseDecay:.30, gain:.6  },
+    name: 'VINTAGE',
+    kick:  { startF:130, endF:36,  decay:.75, drive:80,  gain:1.5 },
+    snare: { toneF:195,  toneDecay:.18, noiseF:1200, noiseDecay:.32, gain:.75 },
     hat:   { hpF:6000,  closedDecay:.06, openDecay:.32 },
     crash: { freqs:[240,360,520,700,950,1300], bpF:3800, decay:2.0 },
   },
   {
-    name: 'JUNGLE',    // fast hats, pitched snare, hard kick
-    kick:  { startF:140, endF:44,  decay:.28, drive:220, gain:1.4 },
-    snare: { toneF:260,  toneDecay:.09, noiseF:2400, noiseDecay:.16, gain:.8  },
+    name: 'JUNGLE',
+    kick:  { startF:140, endF:42,  decay:.55, drive:220, gain:1.7 },
+    snare: { toneF:260,  toneDecay:.10, noiseF:2400, noiseDecay:.18, gain:.95 },
     hat:   { hpF:11000, closedDecay:.018,openDecay:.14 },
     crash: { freqs:[310,480,650,890,1200,1600], bpF:6500, decay:1.0 },
   },
   {
-    name: 'DOOM',      // extremely slow and heavy
-    kick:  { startF:60,  endF:22,  decay:1.2, drive:500, gain:1.5 },
-    snare: { toneF:120,  toneDecay:.4,  noiseF:400,  noiseDecay:.9,  gain:.9  },
+    name: 'DOOM',
+    kick:  { startF:60,  endF:20,  decay:1.8, drive:500, gain:1.8 },
+    snare: { toneF:120,  toneDecay:.50, noiseF:400,  noiseDecay:1.0, gain:1.1 },
     hat:   { hpF:4000,  closedDecay:.12, openDecay:.9  },
     crash: { freqs:[100,180,280,400,580,800], bpF:2200, decay:4.5 },
   },
   {
-    name: 'GLITCH',    // tiny micro-hits, pitch randomized
-    kick:  { startF:200, endF:50,  decay:.12, drive:600, gain:1.0 },
-    snare: { toneF:440,  toneDecay:.04, noiseF:4000, noiseDecay:.08, gain:1.0 },
+    name: 'GLITCH',
+    kick:  { startF:200, endF:48,  decay:.18, drive:600, gain:1.3 },
+    snare: { toneF:440,  toneDecay:.05, noiseF:4000, noiseDecay:.10, gain:1.2 },
     hat:   { hpF:12000, closedDecay:.01, openDecay:.08 },
     crash: { freqs:[500,900,1400,2000,2800,3800], bpF:8000, decay:0.5 },
   },
   {
-    name: 'ACOUSTIC',  // natural room sound
-    kick:  { startF:95,  endF:38,  decay:.5,  drive:40,  gain:1.1 },
-    snare: { toneF:230,  toneDecay:.14, noiseF:1600, noiseDecay:.28, gain:.7  },
+    name: 'ACOUSTIC',
+    kick:  { startF:95,  endF:36,  decay:.80, drive:40,  gain:1.4 },
+    snare: { toneF:230,  toneDecay:.16, noiseF:1600, noiseDecay:.32, gain:.85 },
     hat:   { hpF:8500,  closedDecay:.04, openDecay:.25 },
     crash: { freqs:[280,420,580,760,1020,1380], bpF:5000, decay:2.5 },
   },
   {
-    name: 'ELECTRO',   // sharp transients, electronic pop
-    kick:  { startF:180, endF:48,  decay:.32, drive:140, gain:1.35},
-    snare: { toneF:280,  toneDecay:.10, noiseF:2800, noiseDecay:.18, gain:.75 },
+    name: 'ELECTRO',
+    kick:  { startF:180, endF:45,  decay:.60, drive:140, gain:1.6 },
+    snare: { toneF:280,  toneDecay:.12, noiseF:2800, noiseDecay:.20, gain:.9  },
     hat:   { hpF:9500,  closedDecay:.025,openDecay:.20 },
     crash: { freqs:[350,520,720,980,1320,1750], bpF:6200, decay:1.4 },
   },
   {
-    name: 'RITUAL',    // slow tribal, huge reverberant hits
-    kick:  { startF:75,  endF:30,  decay:.85, drive:250, gain:1.3 },
-    snare: { toneF:160,  toneDecay:.35, noiseF:800,  noiseDecay:.65, gain:.85 },
+    name: 'RITUAL',
+    kick:  { startF:75,  endF:28,  decay:1.4, drive:250, gain:1.6 },
+    snare: { toneF:160,  toneDecay:.40, noiseF:800,  noiseDecay:.70, gain:1.0 },
     hat:   { hpF:3500,  closedDecay:.08, openDecay:.7  },
     crash: { freqs:[130,210,320,460,650,900,1200], bpF:2800, decay:5.0 },
   },
@@ -1092,16 +1092,27 @@ function cycleDrumKit() {
 function synthKick(t, v=1) {
   triggerDuck();
   const kit = DRUM_KITS[currentKit].kick;
-  // Pitch-bend on BROKEN kit
   const startF = kit.startF * (currentKit===3 ? (0.7+Math.random()*0.8) : 1);
+
+  // Main body — through distortion for punch
   const o=ctx.createOscillator(), g=ctx.createGain(), d=ctx.createWaveShaper();
   d.curve=mkDC(kit.drive);
   o.frequency.setValueAtTime(startF, t);
-  o.frequency.exponentialRampToValueAtTime(kit.endF, t + kit.decay * 0.4);
+  o.frequency.exponentialRampToValueAtTime(kit.endF, t + kit.decay * 0.35);
   g.gain.setValueAtTime(v * kit.gain, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + kit.decay);
-  o.connect(d); d.connect(g); g.connect(masterGain);
+  o.connect(d); d.connect(g); g.connect(masterDist);
   o.start(t); o.stop(t + kit.decay + 0.05);
+
+  // Sub sine layer — pure low end boom, bypasses distortion
+  const sub=ctx.createOscillator(), subg=ctx.createGain();
+  sub.type='sine';
+  sub.frequency.setValueAtTime(kit.endF * 1.5, t);
+  sub.frequency.exponentialRampToValueAtTime(kit.endF, t + 0.08);
+  subg.gain.setValueAtTime(v * kit.gain * 0.9, t);
+  subg.gain.exponentialRampToValueAtTime(0.001, t + kit.decay * 1.2);
+  sub.connect(subg); subg.connect(masterGain);
+  sub.start(t); sub.stop(t + kit.decay * 1.2 + 0.05);
 }
 
 function synthSnare(t, v=1) {
@@ -1110,14 +1121,14 @@ function synthSnare(t, v=1) {
   const pitchMult = currentKit===3 ? (0.5+Math.random()) : 1;
   const o=ctx.createOscillator(), og=ctx.createGain();
   o.frequency.value = kit.toneF * pitchMult;
-  og.gain.setValueAtTime(v*0.7, t); og.gain.exponentialRampToValueAtTime(0.001, t+kit.toneDecay);
-  o.connect(og); og.connect(masterGain); o.start(t); o.stop(t+kit.toneDecay+0.02);
+  og.gain.setValueAtTime(v*0.9, t); og.gain.exponentialRampToValueAtTime(0.001, t+kit.toneDecay);
+  o.connect(og); og.connect(masterDist); o.start(t); o.stop(t+kit.toneDecay+0.02);
 
   const ns=mkNB(kit.noiseDecay+0.06), ng=ctx.createGain(), nf=ctx.createBiquadFilter();
   nf.type='highpass'; nf.frequency.value = kit.noiseF;
-  ng.gain.setValueAtTime(v*kit.gain, t); ng.gain.exponentialRampToValueAtTime(0.001, t+kit.noiseDecay);
+  ng.gain.setValueAtTime(v*kit.gain*1.2, t); ng.gain.exponentialRampToValueAtTime(0.001, t+kit.noiseDecay);
   const s=ctx.createBufferSource(); s.buffer=ns;
-  s.connect(nf); nf.connect(ng); ng.connect(masterGain); s.start(t); s.stop(t+kit.noiseDecay+0.06);
+  s.connect(nf); nf.connect(ng); ng.connect(masterDist); s.start(t); s.stop(t+kit.noiseDecay+0.06);
 }
 
 function synthHihat(t, open=false, v=1) {
@@ -1570,7 +1581,8 @@ function shiftSeq(dir) {
   });
 }
 function fillDensity(delta) {
-  seqData = seqData.map(row => row.map(() => Math.random() < (0.3 + delta) ? true : false));
+  seqData = seqData.map(row => row.map(() => Math.random() < (0.35 + delta)));
+  document.getElementById('ticker').textContent = delta > 0 ? `▲ PATTERN FILLED` : `▼ PATTERN THINNED`;
 }
 function randomizeRow() {
   // Pick a random drum row and fully re-randomize just that row
@@ -1633,11 +1645,11 @@ function stopPlay() {
 }
 
 // ── FX ────────────────────────────────────────────────────────
-function nudgeChaos(d)    { chaos = Math.max(0,Math.min(1,chaos+d/100)); glitchRate=chaos*.8; }
-function nudgeDrive(d)    { driveVal=Math.max(0,Math.min(100,driveVal+d)); updateDistortion(driveVal); }
-function nudgeDelay(d)    { delayTimeVal=Math.max(50,Math.min(800,delayTimeVal+d)); if(masterDelay) masterDelay.delayTime.value=delayTimeVal/1000; }
-function nudgeGlitch(d)   { glitchRate=Math.max(0,Math.min(1,glitchRate+d/100)); }
-function setReverb(v)     { reverbVal=v; if(reverbWet) reverbWet.gain.value=v/100*.5; if(reverbDry) reverbDry.gain.value=1-(v/100*.4); }
+function nudgeChaos(d)  { chaos=Math.max(0,Math.min(1,chaos+d/100)); glitchRate=chaos*.8; document.getElementById('ticker').textContent=`CHAOS: ${Math.round(chaos*100)}%`; }
+function nudgeDrive(d)  { driveVal=Math.max(0,Math.min(100,driveVal+d)); updateDistortion(driveVal); document.getElementById('ticker').textContent=`DRIVE: ${Math.round(driveVal)}`; }
+function nudgeDelay(d)  { delayTimeVal=Math.max(50,Math.min(800,delayTimeVal+d)); if(masterDelay)masterDelay.delayTime.value=delayTimeVal/1000; document.getElementById('ticker').textContent=`DELAY: ${delayTimeVal}ms`; }
+function nudgeGlitch(d) { glitchRate=Math.max(0,Math.min(1,glitchRate+d/100)); document.getElementById('ticker').textContent=`GLITCH: ${Math.round(glitchRate*100)}%`; }
+function setReverb(v)   { reverbVal=v; if(reverbWet)reverbWet.gain.value=v/100*.5; if(reverbDry)reverbDry.gain.value=1-(v/100*.4); document.getElementById('ticker').textContent=`REVERB: ${Math.round(v)}%`; }
 function mkDC(amount)     { const n=256,c=new Float32Array(n); for(let i=0;i<n;i++){const x=(i*2)/n-1; c[i]=((Math.PI+amount)*x)/(Math.PI+amount*Math.abs(x));} return c; }
 function updateDistortion(a) { if(masterDist) masterDist.curve=mkDC(a*4); }
 function buildImpulse(dur,decay) {
